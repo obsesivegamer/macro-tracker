@@ -1,0 +1,23 @@
+{
+  "enabled": true,
+  "name": "Documentation Sync",
+  "description": "Monitors all source files in the React project and triggers documentation updates when changes are detected",
+  "version": "1",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "src/**/*.jsx",
+      "src/**/*.js",
+      "src/**/*.css",
+      "*.js",
+      "*.json",
+      "package.json",
+      "vite.config.js",
+      "eslint.config.js"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Source files have been modified in this React macro tracker project. Please review the changes and update the documentation accordingly. Focus on updating the README.md file to reflect any new features, API changes, component modifications, or architectural updates. If there are significant changes, also consider updating any relevant documentation in implementation or requirements files. Make sure the documentation accurately reflects the current state of the codebase, including any new dependencies, component structure changes, or feature additions."
+  }
+}
