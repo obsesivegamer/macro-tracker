@@ -425,39 +425,56 @@ export default function MacroTracker() {
           </TabsContent>
 
           <TabsContent value="food" activeTab={activeTab}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Add Food Entry</CardTitle>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
+              <Card variant="default" className="animate-fade-in">
+                <CardHeader size="default">
+                  <CardTitle level={3}>Add Food Entry</CardTitle>
+                  <CardDescription>Log your meals and track nutrition</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <Select value={meal} onValueChange={setMeal}>
-                    <option value="breakfast">Breakfast</option>
-                    <option value="lunch">Lunch</option>
-                    <option value="dinner">Dinner</option>
-                    <option value="snacks">Snacks</option>
-                  </Select>
+                <CardContent size="default" className="space-y-6">
+                  {/* Meal Selection */}
+                  <div className="space-y-2">
+                    <Label htmlFor="meal-select">Meal Category</Label>
+                    <Select 
+                      value={meal} 
+                      onValueChange={setMeal}
+                      size="md"
+                      placeholder="Select meal..."
+                    >
+                      <option value="breakfast">🌅 Breakfast</option>
+                      <option value="lunch">☀️ Lunch</option>
+                      <option value="dinner">🌙 Dinner</option>
+                      <option value="snacks">🍿 Snacks</option>
+                    </Select>
+                  </div>
 
-                  <div>
+                  {/* Food Search */}
+                  <div className="space-y-2">
+                    <Label htmlFor="food-search">Search Foods</Label>
                     <Input 
-                      placeholder="Search foods..." 
+                      id="food-search"
+                      placeholder="Type to search foods..." 
                       value={foodSearch}
                       onChange={(e) => setFoodSearch(e.target.value)}
+                      size="md"
+                      icon={<svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>}
                     />
-                    {foodSearch && (
-                      <div className="mt-2 max-h-40 overflow-y-auto border rounded">
+                    {foodSearch && searchResults.length > 0 && (
+                      <div className="mt-2 max-h-48 overflow-y-auto border border-neutral-200 rounded-lg bg-white shadow-sm">
                         {searchResults.slice(0, 5).map((food, index) => (
                           <div 
                             key={index}
-                            className="p-2 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                            className="p-3 hover:bg-neutral-50 cursor-pointer border-b border-neutral-100 last:border-b-0 transition-colors"
                             onClick={() => {
                               setSelectedFood(food);
                               setFoodSearch(food.name);
                             }}
                           >
-                            <div className="font-medium">{food.name}</div>
-                            <div className="text-sm text-gray-600">
-                              {food.calories} cal • {food.protein}g protein
+                            <div className="font-medium text-neutral-900">{food.name}</div>
+                            <div className="text-sm text-neutral-600 mt-1">
+                              {food.calories} cal • {food.protein}g protein • {food.carbs}g carbs • {food.fat}g fat
                             </div>
                           </div>
                         ))}
@@ -465,39 +482,67 @@ export default function MacroTracker() {
                     )}
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <Input 
-                      type="number" 
-                      placeholder="Quantity"
-                      value={quantity}
-                      onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
-                      min="0.1"
-                      step="0.1"
-                    />
-                    <Button onClick={addFoodEntry} disabled={!selectedFood && !customFood.name}>
-                      Add Food
-                    </Button>
+                  {/* Quantity and Add Button */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="quantity">Quantity</Label>
+                      <Input 
+                        id="quantity"
+                        type="number" 
+                        placeholder="1.0"
+                        value={quantity}
+                        onChange={(e) => setQuantity(parseFloat(e.target.value) || 1)}
+                        min="0.1"
+                        step="0.1"
+                        size="md"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>&nbsp;</Label>
+                      <Button 
+                        onClick={addFoodEntry} 
+                        disabled={!selectedFood && !customFood.name}
+                        variant="primary"
+                        size="md"
+                        fullWidth
+                      >
+                        Add Food
+                      </Button>
+                    </div>
                   </div>
 
+                  {/* Selected Food Preview */}
                   {selectedFood && (
-                    <div className="p-3 bg-blue-50 rounded">
-                      <div className="font-medium">{selectedFood.name}</div>
-                      <div className="text-sm text-gray-600">
-                        {Math.round(selectedFood.calories * quantity)} calories • 
-                        {Math.round(selectedFood.protein * quantity)}g protein • 
-                        {Math.round(selectedFood.carbs * quantity)}g carbs • 
-                        {Math.round(selectedFood.fat * quantity)}g fat
-                      </div>
-                    </div>
+                    <Alert variant="info" className="animate-fade-in">
+                      <AlertTitle>Selected: {selectedFood.name}</AlertTitle>
+                      <AlertDescription>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-2 text-sm">
+                          <span><strong>{Math.round(selectedFood.calories * quantity)}</strong> cal</span>
+                          <span><strong>{Math.round(selectedFood.protein * quantity)}g</strong> protein</span>
+                          <span><strong>{Math.round(selectedFood.carbs * quantity)}g</strong> carbs</span>
+                          <span><strong>{Math.round(selectedFood.fat * quantity)}g</strong> fat</span>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
                   )}
 
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium mb-2">Or add custom food:</h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input 
-                        placeholder="Food name"
-                        value={customFood.name}
-                        onChange={(e) => setCustomFood({...customFood, name: e.target.value})}
+                  {/* Custom Food Section */}
+                  <div className="border-t border-neutral-200 pt-6 space-y-4">
+                    <div>
+                      <h4 className="font-semibold text-neutral-900 mb-1">Add Custom Food</h4>
+                      <p className="text-sm text-neutral-600">Can't find your food? Add it manually</p>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="custom-name">Food Name</Label>
+                        <Input 
+                          id="custom-name"
+                          placeholder="e.g., Homemade Pasta"
+                          value={customFood.name}
+                          onChange={(e) => setCustomFood({...customFood, name: e.target.value})}
+                          size="md"
+                        />
+                      </div>
                       />
                       <Input 
                         type="number" 
