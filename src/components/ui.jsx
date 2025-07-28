@@ -348,7 +348,7 @@ export const TabsContent = ({
   );
 };
 
-// Progress component for nutrient tracking
+// Enhanced Progress component for nutrient tracking with animations and icons
 export const Progress = ({ 
   value = 0, 
   max = 100, 
@@ -356,34 +356,309 @@ export const Progress = ({
   size = "md",
   variant = "default",
   showLabel = false,
+  showIcon = false,
+  animated = false,
+  striped = false,
+  gradient = false,
   ...props 
 }) => {
   const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
   
   const sizes = {
+    xs: "h-1.5",
     sm: "h-2",
     md: "h-3",
-    lg: "h-4"
+    lg: "h-4",
+    xl: "h-6"
   };
   
   const variants = {
-    default: "bg-primary-600",
-    success: "bg-success-600",
-    warning: "bg-warning-600",
-    error: "bg-error-600"
+    default: gradient ? "bg-gradient-to-r from-primary-500 to-primary-600" : "bg-primary-600",
+    success: gradient ? "bg-gradient-to-r from-success-500 to-success-600" : "bg-success-600",
+    warning: gradient ? "bg-gradient-to-r from-warning-500 to-warning-600" : "bg-warning-600",
+    error: gradient ? "bg-gradient-to-r from-error-500 to-error-600" : "bg-error-600",
+    info: gradient ? "bg-gradient-to-r from-blue-500 to-blue-600" : "bg-blue-600",
+    purple: gradient ? "bg-gradient-to-r from-purple-500 to-purple-600" : "bg-purple-600"
   };
+  
+  const icons = {
+    success: "✓",
+    warning: "⚠",
+    error: "✗",
+    default: "●"
+  };
+  
+  const stripedClass = striped ? "bg-gradient-to-r from-transparent via-white/20 to-transparent bg-[length:20px_100%]" : "";
+  const animatedClass = animated ? "animate-pulse" : "";
+  const glowClass = percentage > 90 ? "shadow-lg shadow-current/20" : "";
   
   return (
     <div className={`relative ${className}`} {...props}>
-      <div className={`w-full bg-neutral-200 rounded-full overflow-hidden ${sizes[size]}`}>
+      <div className={`w-full bg-neutral-200 rounded-full overflow-hidden shadow-inner ${sizes[size]}`}>
         <div 
-          className={`h-full transition-all duration-300 ease-out ${variants[variant]}`}
-          style={{ width: `${percentage}%` }}
+          className={`h-full transition-all duration-1000 ease-out rounded-full ${variants[variant]} ${stripedClass} ${animatedClass} ${glowClass}`}
+          style={{ 
+            width: `${percentage}%`,
+            transform: `scaleX(${percentage / 100})`,
+            transformOrigin: 'left',
+            animation: striped ? 'progress-stripes 2s linear infinite' : undefined
+          }}
         />
       </div>
-      {showLabel && (
-        <span className="absolute inset-0 flex items-center justify-center text-xs font-medium text-neutral-700">
-          {Math.round(percentage)}%
+      {(showLabel || showIcon) && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          {showIcon && (
+            <span className="text-xs mr-1 text-neutral-700 font-bold drop-shadow-sm">
+              {icons[variant] || icons.default}
+            </span>
+          )}
+          {showLabel && (
+            <span className="text-xs font-semibold text-neutral-700 drop-shadow-sm">
+              {Math.round(percentage)}%
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Circular Progress component for status displays
+export const CircularProgress = ({
+  value = 0,
+  max = 100,
+  size = "md",
+  variant = "default",
+  showLabel = true,
+  strokeWidth = 4,
+  className = "",
+  children,
+  ...props
+}) => {
+  const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+  
+  const sizes = {
+    sm: { width: 40, height: 40, fontSize: "text-xs" },
+    md: { width: 60, height: 60, fontSize: "text-sm" },
+    lg: { width: 80, height: 80, fontSize: "text-base" },
+    xl: { width: 120, height: 120, fontSize: "text-lg" }
+  };
+  
+  const variants = {
+    default: "#3b82f6",
+    success: "#10b981",
+    warning: "#f59e0b",
+    error: "#ef4444"
+  };
+  
+  const { width, height, fontSize } = sizes[size];
+  const radius = (width - strokeWidth * 2) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const strokeDasharray = circumference;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  
+  return (
+    <div className={`relative inline-flex items-center justify-center ${className}`} {...props}>
+      <svg width={width} height={height} className="transform -rotate-90">
+        {/* Background circle */}
+        <circle
+          cx={width / 2}
+          cy={height / 2}
+          r={radius}
+          stroke="#e5e7eb"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+        />
+        {/* Progress circle */}
+        <circle
+          cx={width / 2}
+          cy={height / 2}
+          r={radius}
+          stroke={variants[variant]}
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={strokeDasharray}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          className="transition-all duration-700 ease-out"
+          style={{
+            filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))'
+          }}
+        />
+      </svg>
+      {(showLabel || children) && (
+        <div className={`absolute inset-0 flex items-center justify-center ${fontSize} font-semibold text-neutral-700`}>
+          {children || `${Math.round(percentage)}%`}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Enhanced Nutrient Progress component for detailed nutrient tracking
+export const NutrientProgress = ({
+  nutrient,
+  current = 0,
+  target = 100,
+  unit = "mg",
+  status = "default",
+  showPercentage = true,
+  showValues = true,
+  animated = true,
+  size = "md",
+  className = "",
+  ...props
+}) => {
+  const percentage = Math.min(Math.max((current / target) * 100, 0), 100);
+  
+  const sizes = {
+    sm: { height: "h-2", text: "text-xs", spacing: "space-y-1" },
+    md: { height: "h-3", text: "text-sm", spacing: "space-y-2" },
+    lg: { height: "h-4", text: "text-base", spacing: "space-y-2" }
+  };
+  
+  const statusVariants = {
+    low: { variant: "error", icon: "⚠", color: "text-error-700" },
+    moderate: { variant: "warning", icon: "◐", color: "text-warning-700" },
+    good: { variant: "success", icon: "✓", color: "text-success-700" },
+    high: { variant: "info", icon: "↑", color: "text-blue-700" },
+    default: { variant: "default", icon: "●", color: "text-neutral-700" }
+  };
+  
+  const config = statusVariants[status] || statusVariants.default;
+  const sizeConfig = sizes[size];
+  
+  return (
+    <div className={`${sizeConfig.spacing} ${className}`} {...props}>
+      {/* Header with nutrient name and status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className={`${sizeConfig.text} font-medium text-neutral-900 capitalize`}>
+            {nutrient.replace(/([A-Z])/g, ' $1').trim()}
+          </span>
+          <span className={`${config.color} font-bold text-xs`}>
+            {config.icon}
+          </span>
+        </div>
+        {showPercentage && (
+          <span className={`${sizeConfig.text} font-semibold ${config.color}`}>
+            {Math.round(percentage)}%
+          </span>
+        )}
+      </div>
+      
+      {/* Progress bar */}
+      <Progress
+        value={current}
+        max={target}
+        variant={config.variant}
+        size={size}
+        animated={animated}
+        gradient={true}
+        className="w-full"
+      />
+      
+      {/* Values display */}
+      {showValues && (
+        <div className="flex justify-between items-center">
+          <span className={`${sizeConfig.text} text-neutral-600`}>
+            {Math.round(current * 10) / 10} {unit}
+          </span>
+          <span className={`${sizeConfig.text} text-neutral-500`}>
+            Target: {target} {unit}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Status Indicator component with icons and animations
+export const StatusIndicator = ({
+  status = "default",
+  size = "md",
+  animated = false,
+  showIcon = true,
+  showText = true,
+  text,
+  pulse = false,
+  className = "",
+  ...props
+}) => {
+  const statuses = {
+    success: {
+      color: "text-success-700",
+      bg: "bg-success-100",
+      border: "border-success-200",
+      icon: "✓",
+      text: "Good",
+      glow: "shadow-success-200/50"
+    },
+    warning: {
+      color: "text-warning-700", 
+      bg: "bg-warning-100",
+      border: "border-warning-200",
+      icon: "⚠",
+      text: "Warning",
+      glow: "shadow-warning-200/50"
+    },
+    error: {
+      color: "text-error-700",
+      bg: "bg-error-100", 
+      border: "border-error-200",
+      icon: "✗",
+      text: "Low",
+      glow: "shadow-error-200/50"
+    },
+    info: {
+      color: "text-blue-700",
+      bg: "bg-blue-100",
+      border: "border-blue-200", 
+      icon: "ℹ",
+      text: "Info",
+      glow: "shadow-blue-200/50"
+    },
+    high: {
+      color: "text-purple-700",
+      bg: "bg-purple-100",
+      border: "border-purple-200",
+      icon: "↑",
+      text: "High",
+      glow: "shadow-purple-200/50"
+    },
+    default: {
+      color: "text-neutral-700",
+      bg: "bg-neutral-100",
+      border: "border-neutral-200",
+      icon: "●",
+      text: "Status",
+      glow: "shadow-neutral-200/50"
+    }
+  };
+  
+  const sizes = {
+    sm: "px-2 py-1 text-xs gap-1",
+    md: "px-3 py-1.5 text-sm gap-1.5", 
+    lg: "px-4 py-2 text-base gap-2"
+  };
+  
+  const statusConfig = statuses[status] || statuses.default;
+  const animatedClass = animated ? "animate-pulse" : "";
+  const pulseClass = pulse ? `animate-pulse shadow-lg ${statusConfig.glow}` : "";
+  
+  return (
+    <div 
+      className={`inline-flex items-center rounded-full font-medium border transition-all duration-300 hover:scale-105 ${statusConfig.bg} ${statusConfig.border} ${statusConfig.color} ${sizes[size]} ${animatedClass} ${pulseClass} ${className}`}
+      {...props}
+    >
+      {showIcon && (
+        <span className="font-bold animate-bounce-subtle">
+          {statusConfig.icon}
+        </span>
+      )}
+      {showText && (
+        <span>
+          {text || statusConfig.text}
         </span>
       )}
     </div>

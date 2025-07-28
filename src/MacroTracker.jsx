@@ -19,7 +19,76 @@ import {
   downloadFile 
 } from "./utils/export.js";
 
-const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7c7c", "#8dd1e1"];
+// Modern chart color palette aligned with design system
+const CHART_COLORS = {
+  primary: "#3b82f6",    // Primary blue
+  success: "#10b981",    // Success green  
+  warning: "#f59e0b",    // Warning amber
+  error: "#ef4444",      // Error red
+  purple: "#8b5cf6",     // Purple
+  teal: "#14b8a6",       // Teal
+  orange: "#f97316",     // Orange
+  pink: "#ec4899",       // Pink
+  indigo: "#6366f1",     // Indigo
+  emerald: "#059669"     // Emerald
+};
+
+const MACRO_COLORS = {
+  protein: CHART_COLORS.primary,
+  carbs: CHART_COLORS.success, 
+  fat: CHART_COLORS.warning
+};
+
+// Chart theme configuration
+const CHART_THEME = {
+  tooltip: {
+    contentStyle: {
+      backgroundColor: 'white',
+      border: '1px solid #e5e7eb',
+      borderRadius: '12px',
+      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.05)',
+      fontSize: '14px',
+      fontWeight: '500',
+      padding: '12px 16px'
+    },
+    labelStyle: {
+      color: '#374151',
+      fontWeight: '600',
+      marginBottom: '4px'
+    },
+    itemStyle: {
+      color: '#6b7280',
+      padding: '2px 0'
+    }
+  },
+  legend: {
+    wrapperStyle: {
+      fontSize: '14px',
+      fontWeight: '500',
+      color: '#374151',
+      paddingTop: '16px'
+    }
+  },
+  grid: {
+    stroke: '#f3f4f6',
+    strokeWidth: 1
+  },
+  axis: {
+    tick: {
+      fontSize: 12,
+      fill: '#6b7280',
+      fontWeight: '500'
+    },
+    axisLine: {
+      stroke: '#e5e7eb',
+      strokeWidth: 1
+    },
+    tickLine: {
+      stroke: '#e5e7eb',
+      strokeWidth: 1
+    }
+  }
+};
 
 const TDEECalculator = ({ weight, height, age, activityLevel, gender }) => {
   const BMR = gender === "male"
@@ -134,9 +203,9 @@ export default function MacroTracker() {
   }, {});
 
   const macroData = [
-    { name: "Protein", value: totalNutrition.protein || 0, color: "#8884d8" },
-    { name: "Carbs", value: totalNutrition.carbs || 0, color: "#82ca9d" },
-    { name: "Fat", value: totalNutrition.fat || 0, color: "#ffc658" }
+    { name: "Protein", value: totalNutrition.protein || 0, color: MACRO_COLORS.protein },
+    { name: "Carbs", value: totalNutrition.carbs || 0, color: MACRO_COLORS.carbs },
+    { name: "Fat", value: totalNutrition.fat || 0, color: MACRO_COLORS.fat }
   ];
 
   // Functions
@@ -359,22 +428,48 @@ export default function MacroTracker() {
                         <Pie 
                           data={macroData} 
                           dataKey="value" 
-                          outerRadius="80%" 
-                          innerRadius="40%"
-                          paddingAngle={2}
-                          label={({ name, value }) => `${name}: ${value}g`}
+                          outerRadius="85%" 
+                          innerRadius="45%"
+                          paddingAngle={3}
+                          animationBegin={0}
+                          animationDuration={800}
+                          label={({ name, value, percent }) => 
+                            value > 0 ? `${name}: ${value}g (${(percent * 100).toFixed(0)}%)` : ''
+                          }
+                          labelLine={false}
+                          style={{ 
+                            filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}
                         >
                           {macroData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
+                            <Cell 
+                              key={`cell-${index}`} 
+                              fill={entry.color}
+                              stroke="white"
+                              strokeWidth={2}
+                              style={{
+                                filter: 'brightness(1)',
+                                transition: 'all 0.2s ease-in-out'
+                              }}
+                            />
                           ))}
                         </Pie>
                         <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'white', 
-                            border: '1px solid #e5e7eb', 
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
-                          }}
+                          {...CHART_THEME.tooltip}
+                          formatter={(value, name) => [
+                            `${value}g`,
+                            name
+                          ]}
+                          labelFormatter={() => 'Macronutrients'}
+                        />
+                        <Legend 
+                          {...CHART_THEME.legend}
+                          iconType="circle"
+                          layout="horizontal"
+                          align="center"
+                          verticalAlign="bottom"
                         />
                       </PieChart>
                     </ResponsiveContainer>
@@ -677,44 +772,223 @@ export default function MacroTracker() {
           </TabsContent>
 
           <TabsContent value="analysis" activeTab={activeTab}>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Nutrient Analysis</CardTitle>
+            <div className="space-y-6">
+              {/* Weekly Trends Chart */}
+              <Card variant="default" className="animate-fade-in">
+                <CardHeader size="default">
+                  <CardTitle level={3}>Weekly Nutrition Trends</CardTitle>
+                  <CardDescription>Track your daily nutrition intake over the past week</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {Object.entries(DAILY_VALUES).slice(0, 10).map(([nutrient, target]) => {
-                      const current = totalNutrition[nutrient] || 0;
-                      const percentage = Math.round((current / target) * 100);
-                      const status = getNutrientStatus(nutrient, current);
-                      
-                      return (
-                        <div key={nutrient}>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-sm font-medium capitalize">
-                              {nutrient.replace(/([A-Z])/g, ' $1').trim()}
-                            </span>
-                            <span className="text-sm text-gray-600">
-                              {Math.round(current * 10) / 10} / {target}
-                            </span>
-                          </div>
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className="h-2 rounded-full transition-all duration-300" 
-                              style={{ 
-                                width: `${Math.min(percentage, 100)}%`,
-                                backgroundColor: status.color
-                              }}
-                            ></div>
-                          </div>
-                          <div className="text-xs text-gray-500 mt-1">{percentage}% of daily value</div>
-                        </div>
-                      );
-                    })}
+                <CardContent size="default">
+                  <div className="h-64 sm:h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={(() => {
+                        // Generate last 7 days of data
+                        const last7Days = [];
+                        for (let i = 6; i >= 0; i--) {
+                          const date = new Date();
+                          date.setDate(date.getDate() - i);
+                          const dateStr = format(date, 'yyyy-MM-dd');
+                          const dayEntries = entries.filter(e => e.date === dateStr);
+                          const dayNutrition = dayEntries.reduce((acc, e) => {
+                            acc.calories = (acc.calories || 0) + (e.calories || 0);
+                            acc.protein = (acc.protein || 0) + (e.protein || 0);
+                            acc.carbs = (acc.carbs || 0) + (e.carbs || 0);
+                            acc.fat = (acc.fat || 0) + (e.fat || 0);
+                            return acc;
+                          }, {});
+                          
+                          last7Days.push({
+                            date: format(date, 'MMM dd'),
+                            calories: Math.round(dayNutrition.calories || 0),
+                            protein: Math.round(dayNutrition.protein || 0),
+                            carbs: Math.round(dayNutrition.carbs || 0),
+                            fat: Math.round(dayNutrition.fat || 0)
+                          });
+                        }
+                        return last7Days;
+                      })()}>
+                        <CartesianGrid {...CHART_THEME.grid} />
+                        <XAxis 
+                          dataKey="date" 
+                          {...CHART_THEME.axis}
+                          tick={{ ...CHART_THEME.axis.tick, fontSize: 11 }}
+                        />
+                        <YAxis 
+                          {...CHART_THEME.axis}
+                          tick={{ ...CHART_THEME.axis.tick, fontSize: 11 }}
+                        />
+                        <Tooltip 
+                          {...CHART_THEME.tooltip}
+                          labelFormatter={(label) => `Date: ${label}`}
+                          formatter={(value, name) => [
+                            name === 'calories' ? `${value} cal` : `${value}g`,
+                            name.charAt(0).toUpperCase() + name.slice(1)
+                          ]}
+                        />
+                        <Legend {...CHART_THEME.legend} />
+                        <Line 
+                          type="monotone" 
+                          dataKey="calories" 
+                          stroke={CHART_COLORS.primary}
+                          strokeWidth={3}
+                          dot={{ fill: CHART_COLORS.primary, strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: CHART_COLORS.primary, strokeWidth: 2, fill: 'white' }}
+                          name="Calories"
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="protein" 
+                          stroke={MACRO_COLORS.protein}
+                          strokeWidth={2}
+                          dot={{ fill: MACRO_COLORS.protein, strokeWidth: 2, r: 3 }}
+                          activeDot={{ r: 5, stroke: MACRO_COLORS.protein, strokeWidth: 2, fill: 'white' }}
+                          name="Protein"
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="carbs" 
+                          stroke={MACRO_COLORS.carbs}
+                          strokeWidth={2}
+                          dot={{ fill: MACRO_COLORS.carbs, strokeWidth: 2, r: 3 }}
+                          activeDot={{ r: 5, stroke: MACRO_COLORS.carbs, strokeWidth: 2, fill: 'white' }}
+                          name="Carbs"
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="fat" 
+                          stroke={MACRO_COLORS.fat}
+                          strokeWidth={2}
+                          dot={{ fill: MACRO_COLORS.fat, strokeWidth: 2, r: 3 }}
+                          activeDot={{ r: 5, stroke: MACRO_COLORS.fat, strokeWidth: 2, fill: 'white' }}
+                          name="Fat"
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Nutrient Comparison Bar Chart */}
+              <Card variant="default" className="animate-fade-in">
+                <CardHeader size="default">
+                  <CardTitle level={3}>Nutrient Goals vs Actual</CardTitle>
+                  <CardDescription>Compare your daily intake against recommended values</CardDescription>
+                </CardHeader>
+                <CardContent size="default">
+                  <div className="h-64 sm:h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={(() => {
+                        const keyNutrients = ['protein', 'carbs', 'fat', 'fiber', 'vitaminC', 'calcium', 'iron'];
+                        return keyNutrients.map(nutrient => {
+                          const current = totalNutrition[nutrient] || 0;
+                          const target = DAILY_VALUES[nutrient] || 100;
+                          const percentage = Math.min((current / target) * 100, 150); // Cap at 150% for display
+                          
+                          return {
+                            name: nutrient.replace(/([A-Z])/g, ' $1').trim(),
+                            current: Math.round(current * 10) / 10,
+                            target: target,
+                            percentage: Math.round(percentage),
+                            status: getNutrientStatus(nutrient, current).status
+                          };
+                        });
+                      })()}>
+                        <CartesianGrid {...CHART_THEME.grid} />
+                        <XAxis 
+                          dataKey="name" 
+                          {...CHART_THEME.axis}
+                          tick={{ ...CHART_THEME.axis.tick, fontSize: 10 }}
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
+                        <YAxis 
+                          {...CHART_THEME.axis}
+                          tick={{ ...CHART_THEME.axis.tick, fontSize: 11 }}
+                          label={{ value: '% of Daily Value', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fontSize: '12px', fill: '#6b7280' } }}
+                        />
+                        <Tooltip 
+                          {...CHART_THEME.tooltip}
+                          formatter={(value, name) => [
+                            name === 'percentage' ? `${value}%` : value,
+                            name === 'percentage' ? 'Daily Value' : name === 'current' ? 'Current Intake' : 'Target'
+                          ]}
+                          labelFormatter={(label) => `Nutrient: ${label}`}
+                        />
+                        <Bar 
+                          dataKey="percentage" 
+                          fill={CHART_COLORS.primary}
+                          radius={[4, 4, 0, 0]}
+                          style={{
+                            filter: 'drop-shadow(0 1px 2px rgb(0 0 0 / 0.1))'
+                          }}
+                        >
+                          {(() => {
+                            const keyNutrients = ['protein', 'carbs', 'fat', 'fiber', 'vitaminC', 'calcium', 'iron'];
+                            return keyNutrients.map((nutrient, index) => {
+                              const current = totalNutrition[nutrient] || 0;
+                              const status = getNutrientStatus(nutrient, current);
+                              const color = status.status === 'good' ? CHART_COLORS.success : 
+                                          status.status === 'low' ? CHART_COLORS.error : 
+                                          CHART_COLORS.warning;
+                              return <Cell key={`cell-${index}`} fill={color} />;
+                            });
+                          })()}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card variant="default" className="animate-fade-in">
+                  <CardHeader size="default">
+                    <CardTitle level={3}>Detailed Nutrient Analysis</CardTitle>
+                    <CardDescription>Track your essential vitamins and minerals</CardDescription>
+                  </CardHeader>
+                  <CardContent size="default">
+                    <div className="space-y-4">
+                      {Object.entries(DAILY_VALUES).slice(0, 10).map(([nutrient, target]) => {
+                        const current = totalNutrition[nutrient] || 0;
+                        const percentage = Math.round((current / target) * 100);
+                        const status = getNutrientStatus(nutrient, current);
+                        
+                        return (
+                          <div key={nutrient} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium text-neutral-900 capitalize">
+                                {nutrient.replace(/([A-Z])/g, ' $1').trim()}
+                              </span>
+                              <span className="text-sm font-semibold text-neutral-700">
+                                {Math.round(current * 10) / 10} / {target}
+                              </span>
+                            </div>
+                            <Progress 
+                              value={percentage} 
+                              max={100}
+                              size="md"
+                              variant={status.status === 'good' ? 'success' : status.status === 'low' ? 'error' : 'warning'}
+                              className="w-full"
+                            />
+                            <div className="flex justify-between items-center">
+                              <Badge 
+                                variant={status.status === 'good' ? 'success' : status.status === 'low' ? 'destructive' : 'warning'}
+                                size="sm"
+                              >
+                                {percentage}% DV
+                              </Badge>
+                              <span className="text-xs text-neutral-500 font-medium">
+                                {status.status === 'good' ? '✓ Good' : status.status === 'low' ? '⚠ Low' : '⚡ High'}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
 
               <Card>
                 <CardHeader>
